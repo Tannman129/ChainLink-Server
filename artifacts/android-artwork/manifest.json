@@ -1,0 +1,142 @@
+[
+  {
+    "path": "app/src/androidTest/java/com/fortsprague/discgolf/BrandingScreenTest.kt",
+    "before": "1a9274fae9900551a1f3ca382c5d66648f7cc43b088601eca476d4e8a9c2d701",
+    "after": "83451bce811d377a7699d7b7e69fac90d1e09c3123cb2bd599bfeb1c9746475a"
+  },
+  {
+    "path": "app/src/main/java/com/fortsprague/discgolf/ui/home/HomeScreen.kt",
+    "before": "621d6ef374ed7908734c53e379cd798dd9ca8d4432129fa41ceda39a03bc1d58",
+    "after": "44954aef93b9cec6635522ae25e9ca3e6fc8b1304c9bfb2d7582189625973fe3"
+  },
+  {
+    "path": "app/src/main/res/drawable/ic_launcher_background.xml",
+    "before": "ed423c73a6f40a4d2909f0901e60527b3a807cd59e1b5593bcaae1808b1c6321",
+    "after": "bcf4c3adbf8f88cd149ddbe5293f8dc038ea4f30eaa4531f3e83cc4fa4811ee2"
+  },
+  {
+    "path": "app/src/main/res/drawable/ic_launcher_foreground.xml",
+    "before": "01d1a6a6c1234eb7fe270d097eb283d72b9c95ae5118886f1b6573aad280f1f7",
+    "after": "93c9e048f569f611d1f3c40719c0d7f1f70ca126d69ad79f8dce71028b8beae5"
+  },
+  {
+    "path": "app/src/main/res/drawable/ic_launcher_monochrome.xml",
+    "before": null,
+    "after": "9abc54f6154b93dc82b4b7d877b4091419a03348fcdaf6d9812ba32fd7ae4b90"
+  },
+  {
+    "path": "app/src/main/res/drawable-hdpi/ic_launcher_artwork.webp",
+    "before": null,
+    "after": "e9e3357e65a48b8597b07e646a030949e6bb881da0081e9ab51273a4a9fa93a0"
+  },
+  {
+    "path": "app/src/main/res/drawable-hdpi/ic_launcher_mono.webp",
+    "before": null,
+    "after": "bde4a54646d515a2ea3cfdf40432400c1a56b559643cd05b0b38949e6f7f7411"
+  },
+  {
+    "path": "app/src/main/res/drawable-mdpi/ic_launcher_artwork.webp",
+    "before": null,
+    "after": "eb5867289be72454fa9ac973d89510a2af6de4333ec519138cc1a8ab969a3e96"
+  },
+  {
+    "path": "app/src/main/res/drawable-mdpi/ic_launcher_mono.webp",
+    "before": null,
+    "after": "712ee8d3a37b5f90955fc5d47f1e64e9e9e5ef6c758b3499cd60a23bf2350fc3"
+  },
+  {
+    "path": "app/src/main/res/drawable-nodpi/chainlink_basket.webp",
+    "before": null,
+    "after": "f661e0acc3b814b67ace5fcc72ebb7237e8135fc72eabc877dfcb3536e575a12"
+  },
+  {
+    "path": "app/src/main/res/drawable-xhdpi/ic_launcher_artwork.webp",
+    "before": null,
+    "after": "e05397c41050931283f8eadb89eed442bfb48076a12d442cb32e739e4968b674"
+  },
+  {
+    "path": "app/src/main/res/drawable-xhdpi/ic_launcher_mono.webp",
+    "before": null,
+    "after": "e28af16c1ab23d4f6c4e95875bcc3bd29298d8aa392eab7b12953959430ba59f"
+  },
+  {
+    "path": "app/src/main/res/drawable-xxhdpi/ic_launcher_artwork.webp",
+    "before": null,
+    "after": "c596c901c34203e21fbfcb008519426c898809efa15d31b703a05db37cf43080"
+  },
+  {
+    "path": "app/src/main/res/drawable-xxhdpi/ic_launcher_mono.webp",
+    "before": null,
+    "after": "3498ff3f4f86b262bd3489d0405837f20a9d0e7f15967c139d0e5b280495919e"
+  },
+  {
+    "path": "app/src/main/res/drawable-xxxhdpi/ic_launcher_artwork.webp",
+    "before": null,
+    "after": "981445796b78f0c24e1fa9fea149fad320b47996313576d710e909455bcabb83"
+  },
+  {
+    "path": "app/src/main/res/drawable-xxxhdpi/ic_launcher_mono.webp",
+    "before": null,
+    "after": "359df18098aa94b3b22f90dc0f01e3f35918e129f99e91f0a618f93b22c2ad66"
+  },
+  {
+    "path": "app/src/main/res/mipmap-anydpi/ic_launcher.xml",
+    "before": "88f7653499ef524126ea5018a99baf9cc3269e7e584d6205dfdd76db39f39cc0",
+    "after": "82add00a72df2cdba968fe524e20f108a89b90b1e22ee1f9c8bf6d43f195abea"
+  },
+  {
+    "path": "app/src/main/res/mipmap-anydpi/ic_launcher_round.xml",
+    "before": "88f7653499ef524126ea5018a99baf9cc3269e7e584d6205dfdd76db39f39cc0",
+    "after": "82add00a72df2cdba968fe524e20f108a89b90b1e22ee1f9c8bf6d43f195abea"
+  },
+  {
+    "path": "app/src/main/res/mipmap-hdpi/ic_launcher.webp",
+    "before": "dd00996198640ed28fbc09cdcd7a3807cf8707f3eb255b659634da3ca6a6ff01",
+    "after": "e16dc08984cb33f5f2b06129cbeb3ea67c099b62fdc48eb1758983a6fe07fb51"
+  },
+  {
+    "path": "app/src/main/res/mipmap-hdpi/ic_launcher_round.webp",
+    "before": "1ed73f5341a69d3b41c7e02e126803f50cc8c3284adf4bbb737f0c93577aef07",
+    "after": "810388c98754a1a44661f26ceafa1373af4103791be78dff53fe651cba9de053"
+  },
+  {
+    "path": "app/src/main/res/mipmap-mdpi/ic_launcher.webp",
+    "before": "846219e6f72fe9a6c104ca8919cbee36a101e7d2ff8da9da67b689a5888f060d",
+    "after": "e6f3ed9dd4ee80d0984a4e9a89d78e211a6438d81b116a26b19d681bd5429d38"
+  },
+  {
+    "path": "app/src/main/res/mipmap-mdpi/ic_launcher_round.webp",
+    "before": "4e2c58b91de01130e6479e00cbbaaf6e77cd961dd2c8e303cf13cd077fa92632",
+    "after": "3af533390fd56601adf9a8c50c72ff8e43ea372a402aa51195f7faa9babb865b"
+  },
+  {
+    "path": "app/src/main/res/mipmap-xhdpi/ic_launcher.webp",
+    "before": "398340dad816fc9a6338cb151a8cf1e45b926f9bfb70628b24c4bd2523cc94d4",
+    "after": "b5e0730a2c2845ed76d4a5e1c5932fb2e35609516dca3c11c2322a37ee6f6cb4"
+  },
+  {
+    "path": "app/src/main/res/mipmap-xhdpi/ic_launcher_round.webp",
+    "before": "91b490aef86574901137f0a252272e1f1add99c1ad709e0696ed68929b88d261",
+    "after": "fcaa5569d2afa15479bcda186801286bccd3d053d966dc9a4dfbff75e960bb94"
+  },
+  {
+    "path": "app/src/main/res/mipmap-xxhdpi/ic_launcher.webp",
+    "before": "58ae87fa0c5b5d1562d27fd648d2c061553fe20e3ed570bde588162d01ea7a27",
+    "after": "3a8a580794bdfb476ac9f218075648d21fcdf4a4f40b2997ffc31d9788cfe330"
+  },
+  {
+    "path": "app/src/main/res/mipmap-xxhdpi/ic_launcher_round.webp",
+    "before": "3009fad079f5772f30ecd767f98924367fbe0f81c30048d672d4fda2d5ca7d12",
+    "after": "677fbf8e4055c5e1efa1e5e2460e0c82f3c25841eedf4b8448796f300eb7a352"
+  },
+  {
+    "path": "app/src/main/res/mipmap-xxxhdpi/ic_launcher.webp",
+    "before": "f98fef5bc3bfe5b65692c40ad1cbae2bec4faf9f1b249c397626740db71b62d8",
+    "after": "8810876e8d395413c846e9b0ac1fda9b8ec4aa325c6ee41ef290d72fec549b4c"
+  },
+  {
+    "path": "app/src/main/res/mipmap-xxxhdpi/ic_launcher_round.webp",
+    "before": "5faf033745c8c882c43bb1b372d4e4a5890caec63d9892a2e756c954108b85dc",
+    "after": "596b49f455a96c1e721e5d42de272fc97d554831f56bb26ddbfc7a349e9d2c00"
+  }
+]

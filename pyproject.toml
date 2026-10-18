@@ -7,13 +7,17 @@ name = "chainlink-server"
 version = "0.1.0"
 description = "Optional, self-hosted disc golf course catalog"
 requires-python = ">=3.12"
-dependencies = ["fastapi>=0.115,<1", "uvicorn>=0.34,<1", "SQLAlchemy>=2.0.38,<2.1", "alembic>=1.14,<2", "psycopg[binary]>=3.2,<4", "pydantic-settings>=2.7,<3"]
+dependencies = ["fastapi>=0.115,<1", "uvicorn>=0.34,<1", "SQLAlchemy>=2.0.38,<2.1", "alembic>=1.14,<2", "psycopg[binary]>=3.2,<4", "pydantic-settings>=2.7,<3", "argon2-cffi>=23.1,<26"]
 
 [project.optional-dependencies]
 test = ["pytest>=8,<10", "httpx>=0.28,<1"]
+browser = ["playwright>=1.50,<2"]
 
 [tool.setuptools.packages.find]
 include = ["app*"]
+
+[tool.setuptools.package-data]
+app = ["static/*.html", "static/*.svg", "static/css/*.css", "static/js/*.js", "static/images/*.webp"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

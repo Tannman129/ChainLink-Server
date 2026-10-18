@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="theme-color" content="#101014" />
+    <meta
+      name="description"
+      content="ChainLink — your self-hosted disc golf workspace."
+    />
+    <title>ChainLink · Dashboard</title>
+    <link rel="icon" href="/static/mark.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/static/css/chainlink.css" />
+    <script type="module" src="/static/js/chainlink.js"></script>
+    <script type="module" src="/static/js/auth.js"></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <dialog id="login-dialog" aria-labelledby="login-title">
+      <form id="login-form">
+        <h2 id="login-title">Sign in to ChainLink</h2>
+        <p>Browsing courses does not require an account.</p>
+        <label for="login-username">Username</label>
+        <input id="login-username" name="username" autocomplete="username" maxlength="40" required>
+        <label for="login-password">Password</label>
+        <input id="login-password" name="password" type="password" autocomplete="current-password" maxlength="256" required>
+        <p id="login-message" role="status" aria-live="polite"></p>
+        <div class="account-controls"><button class="button primary" type="submit">Sign in</button><button class="button" id="login-cancel" type="button">Cancel</button></div>
+      </form>
+    </dialog>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <a class="brand" href="#dashboard" aria-label="ChainLink dashboard"
+          ><img src="/static/mark.svg" alt="" width="36" height="36" /><span
+            >ChainLink<small>DISC GOLF · SELF-HOSTED</small></span
+          ></a
+        >
+        <p class="nav-label">WORKSPACE</p>
+        <nav class="main-nav" aria-label="Main navigation">
+          <a href="#dashboard" data-page="dashboard"
+            ><svg class="icon" aria-hidden="true">
+              <use href="/static/icons.svg#dashboard"></use></svg
+            ><span>Dashboard</span></a
+          >
+          <a href="#courses" data-page="courses"
+            ><svg class="icon" aria-hidden="true">
+              <use href="/static/icons.svg#courses"></use></svg
+            ><span>Courses</span></a
+          >
+          <a href="#layouts" data-page="layouts"
+            ><svg class="icon" aria-hidden="true">
+              <use href="/static/icons.svg#layouts"></use></svg
+            ><span>Layouts</span></a
+          >
+          <a href="#players" data-page="players"
+            ><svg class="icon" aria-hidden="true">
+              <use href="/static/icons.svg#players"></use></svg
+            ><span>Players</span><span class="nav-soon">Soon</span></a
+          >
+          <a href="#rounds" data-page="rounds"
+            ><svg class="icon" aria-hidden="true">
+              <use href="/static/icons.svg#rounds"></use></svg
+            ><span>Round History</span></a
+          >
+          <a href="#statistics" data-page="statistics"><svg class="icon" aria-hidden="true"><use href="/static/icons.svg#stats"></use></svg><span>Statistics</span></a>
+        </nav>
+        <div class="sidebar-footer">
+          <div class="server-identity">
+            <svg class="icon" aria-hidden="true">
+              <use href="/static/icons.svg#server"></use>
+            </svg>
+            <div>
+              ChainLink Server<small>Local network · Read-only UI</small>
+            </div>
+          </div>
+          <a href="/docs"
+            >API documentation <span aria-hidden="true">↗</span></a
+          >
+        </div>
+      </aside>
+      <div class="workspace">
+        <header class="topbar">
+          <span class="breadcrumb"
+            >Workspace <span aria-hidden="true">/</span>
+            <span id="breadcrumb">Dashboard</span></span
+          ><div class="account-controls"><span id="account-name"></span><button class="button" id="sign-in" type="button">Sign in</button><button class="button" id="sign-out" type="button" hidden>Sign out</button></div><span class="local-badge"
+            ><span aria-hidden="true"></span>LAN ONLY</span
+          >
+        </header>
+        <main id="main" tabindex="-1">
+          <section class="page-heading">
+            <div>
+              <p class="eyebrow" id="eyebrow">YOUR DISC GOLF WORKSPACE</p>
+              <h1 id="page-title">Dashboard</h1>
+              <p id="page-description">
+                Your course library, connected to your game.
+              </p>
+            </div>
+            <a class="button primary heading-action" href="#courses"
+              ><svg class="icon" aria-hidden="true">
+                <use href="/static/icons.svg#courses"></use></svg
+              >Browse courses <span aria-hidden="true">↗</span></a
+            >
+          </section>
+          <div id="view" aria-live="polite" aria-busy="false"></div>
+          <noscript
+            ><div class="state">
+              Enable JavaScript to browse the course catalog. The
+              <a href="/docs">API documentation</a> is also available.
+            </div></noscript
+          >
+        </main>
+        <footer class="page-footer">
+          <span
+            ><b>ChainLink</b> <span aria-hidden="true">/</span> Your game. Your
+            server.</span
+          ><span>Offline-first by design. Always.</span>
+        </footer>
+      </div>
+    </div>
+  </body>
+</html>

@@ -1,9 +1,12 @@
+from datetime import datetime
 from uuid import UUID, uuid4
 
 from sqlalchemy import (
     CheckConstraint,
+    DateTime,
     ForeignKey,
     ForeignKeyConstraint,
+    Index,
     UniqueConstraint,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -141,3 +144,110 @@ class HoleDefault(Base):
         ForeignKey("holes.id", ondelete="CASCADE"), primary_key=True
     )
     configuration_id: Mapped[UUID]
+
+
+class Account(Base):
+    __tablename__ = "accounts"
+    __table_args__ = (
+        CheckConstraint(
+            "role IN ('player', 'administrator')", name="account_role_valid"
+        ),
+    )
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    username: Mapped[str] = mapped_column(unique=True)
+    password_hash: Mapped[str]
+    role: Mapped[str]
+
+
+class WebSession(Base):
+    __tablename__ = "web_sessions"
+    token_hash: Mapped[str] = mapped_column(primary_key=True)
+    account_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("accounts.id", ondelete="CASCADE"), index=True
+    )
+    expires_at: Mapped[int] = mapped_column(index=True)
+
+
+class LoginBucket(Base):
+    __tablename__ = "login_buckets"
+    key: Mapped[str] = mapped_column(primary_key=True)
+    attempts: Mapped[int]
+    expires_at: Mapped[int] = mapped_column(index=True)
+
+
+class CompletedRound(Base):
+    __tablename__ = "completed_rounds"
+    id: Mapped[UUID] = mapped_column(primary_key=True)
+    owner_id: Mapped[UUID] = mapped_column(ForeignKey("accounts.id"), index=True)
+    completed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    course_name: Mapped[str]
+    layout_name: Mapped[str]
+    # Informational provenance only: catalog deletion must never cascade here.
+    source_course_id: Mapped[UUID | None]
+    source_layout_id: Mapped[UUID | None]
+    payload_hash: Mapped[str]
+    holes: Mapped[list["RoundHole"]] = relationship(
+        cascade="all, delete-orphan", lazy="selectin", order_by="RoundHole.number"
+    )
+    participants: Mapped[list["RoundParticipant"]] = relationship(
+        cascade="all, delete-orphan", lazy="selectin", order_by="RoundParticipant.id"
+    )
+
+
+class RoundHole(Base):
+    __tablename__ = "round_holes"
+    __table_args__ = (
+        CheckConstraint("number > 0", name="round_hole_number_positive"),
+        CheckConstraint("par > 0", name="round_hole_par_positive"),
+        CheckConstraint(
+            "distance_ft IS NULL OR distance_ft > 0", name="round_distance_positive"
+        ),
+    )
+    round_id: Mapped[UUID] = mapped_column(
+        ForeignKey("completed_rounds.id", ondelete="CASCADE"), primary_key=True
+    )
+    number: Mapped[int] = mapped_column(primary_key=True)
+    par: Mapped[int]
+    tee_name: Mapped[str]
+    basket_name: Mapped[str]
+    distance_ft: Mapped[int | None]
+
+
+class RoundParticipant(Base):
+    __tablename__ = "round_participants"
+    __table_args__ = (
+        Index("uq_round_participant_account", "round_id", "account_id", unique=True),
+    )
+    round_id: Mapped[UUID] = mapped_column(
+        ForeignKey("completed_rounds.id", ondelete="CASCADE"), primary_key=True
+    )
+    id: Mapped[UUID] = mapped_column(primary_key=True)
+    name: Mapped[str]
+    account_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("accounts.id", name="fk_round_participant_account"), index=True
+    )
+    account: Mapped["Account | None"] = relationship()
+    scores: Mapped[list["RoundScore"]] = relationship(
+        cascade="all, delete-orphan", lazy="selectin", order_by="RoundScore.hole_number"
+    )
+
+
+class RoundScore(Base):
+    __tablename__ = "round_scores"
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["round_id", "participant_id"],
+            ["round_participants.round_id", "round_participants.id"],
+            ondelete="CASCADE",
+        ),
+        ForeignKeyConstraint(
+            ["round_id", "hole_number"],
+            ["round_holes.round_id", "round_holes.number"],
+            ondelete="CASCADE",
+        ),
+        CheckConstraint("strokes > 0", name="round_score_strokes_positive"),
+    )
+    round_id: Mapped[UUID] = mapped_column(primary_key=True)
+    participant_id: Mapped[UUID] = mapped_column(primary_key=True)
+    hole_number: Mapped[int] = mapped_column(primary_key=True)
+    strokes: Mapped[int]

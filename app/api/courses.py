@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from app import models as m
 from app import schemas as s
+from app.auth import administrator
 from app.database import get_session
 
 SessionDependency = Annotated[Session, Depends(get_session)]
@@ -36,7 +37,12 @@ def list_courses(
     ).all()
 
 
-@router.post("", response_model=s.CourseRead, status_code=201)
+@router.post(
+    "",
+    response_model=s.CourseRead,
+    status_code=201,
+    dependencies=[Depends(administrator)],
+)
 def create_course(body: s.CourseCreate, session: SessionDependency):
     course = m.Course(**body.model_dump())
     session.add(course)
@@ -55,7 +61,12 @@ def get_graph(course_id: UUID, session: SessionDependency):
     return require_course(course_id, session)
 
 
-@router.post("/{course_id}/layouts", response_model=s.LayoutRead, status_code=201)
+@router.post(
+    "/{course_id}/layouts",
+    response_model=s.LayoutRead,
+    status_code=201,
+    dependencies=[Depends(administrator)],
+)
 def create_layout(course_id: UUID, body: s.LayoutCreate, session: SessionDependency):
     require_course(course_id, session)
     layout = m.Layout(course_id=course_id, name=body.name)

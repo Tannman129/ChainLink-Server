@@ -11,6 +11,8 @@ from sqlalchemy import create_engine, event, text
 from sqlalchemy.engine import make_url
 from sqlalchemy.orm import Session
 
+from app.auth import create_account
+from app.config import get_settings
 from app.database import get_session
 from app.main import app
 
@@ -42,6 +44,13 @@ def engine(tmp_path):
     config.attributes["database_url"] = url
     try:
         command.upgrade(config, "head")
+        if test_url:
+            # A live server query makes PostgreSQL runs fail closed, without fallback.
+            with engine.connect() as conn:
+                assert engine.dialect.name == "postgresql"
+                assert conn.scalar(text("SELECT version()")).startswith("PostgreSQL ")
+                assert conn.scalar(text("SELECT current_database()")) == url.database
+                assert conn.scalar(text("SELECT current_schema()")) == schema
         yield engine
     finally:
         engine.dispose()
@@ -52,7 +61,11 @@ def engine(tmp_path):
 
 
 @pytest.fixture
-def client(engine):
+def anonymous_client(engine, monkeypatch):
+    monkeypatch.setenv("DATABASE_URL", str(engine.url))
+    monkeypatch.setenv("SESSION_COOKIE_SECURE", "false")
+    get_settings.cache_clear()
+
     def session_override():
         with Session(engine) as session:
             yield session
@@ -63,6 +76,22 @@ def client(engine):
             yield client
     finally:
         app.dependency_overrides.clear()
+        get_settings.cache_clear()
+
+
+@pytest.fixture
+def client(anonymous_client, engine):
+    with Session(engine) as db:
+        create_account(db, "test-admin", "test-password-123", "administrator")
+    csrf = anonymous_client.get("/v1/auth/session").json()["csrf_token"]
+    response = anonymous_client.post(
+        "/v1/auth/login",
+        json={"username": "test-admin", "password": "test-password-123"},
+        headers={"X-CSRF-Token": csrf},
+    )
+    assert response.status_code == 200
+    anonymous_client.headers["X-CSRF-Token"] = response.json()["csrf_token"]
+    return anonymous_client
 
 
 @pytest.fixture
