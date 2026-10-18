@@ -5,6 +5,7 @@ import re
 import secrets
 import time
 from typing import Annotated
+from uuid import UUID
 
 from argon2 import PasswordHasher
 from argon2.exceptions import InvalidHashError, VerificationError
@@ -104,7 +105,18 @@ def issue_session(response: Response, db: Session, account_id=None) -> str:
     return token
 
 
-@router.get("/session")
+class AuthenticatedUser(BaseModel):
+    id: UUID
+    username: str
+    role: str
+
+
+class AuthenticationResponse(BaseModel):
+    user: AuthenticatedUser | None
+    csrf_token: str
+
+
+@router.get("/session", response_model=AuthenticationResponse)
 def session_info(request: Request, response: Response, db: DB):
     response.headers["Cache-Control"] = "no-store"
     row = current_session(request, db)
@@ -113,7 +125,7 @@ def session_info(request: Request, response: Response, db: DB):
         token = issue_session(response, db)
     account = db.get(Account, row.account_id) if row and row.account_id else None
     return {
-        "user": {"username": account.username, "role": account.role}
+        "user": {"id": account.id, "username": account.username, "role": account.role}
         if account
         else None,
         "csrf_token": digest(token + ":csrf"),
@@ -153,7 +165,7 @@ def throttle(request: Request, db: Session):
         )
 
 
-@router.post("/login")
+@router.post("/login", response_model=AuthenticationResponse)
 def login(body: LoginInput, request: Request, response: Response, db: DB):
     check_csrf(request, current_session(request, db))
     throttle(request, db)
@@ -179,7 +191,7 @@ def login(body: LoginInput, request: Request, response: Response, db: DB):
     token = issue_session(response, db, account.id)
     response.headers["Cache-Control"] = "no-store"
     return {
-        "user": {"username": account.username, "role": account.role},
+        "user": {"id": account.id, "username": account.username, "role": account.role},
         "csrf_token": digest(token + ":csrf"),
     }
 

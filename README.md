@@ -237,6 +237,12 @@ foundation; an operator can provision a replacement administrator through this c
   30-minute anonymous session if needed. Responses must not be cached.
 - `POST /v1/auth/login` accepts JSON `username` and `password` plus `X-CSRF-Token`.
   A successful login invalidates the old session and issues a new opaque cookie.
+- Successful login and authenticated session responses have the shape
+  `{"user":{"id":"<account UUID>","username":"alice","role":"player"},"csrf_token":"<token>"}`.
+  `user.id` is the account's stable UUID, shared across sessions, for both players
+  and administrators. It is an additive field; clients should tolerate unknown
+  response fields. Anonymous or expired sessions return `user: null` with no account
+  identity. The UUID is an identifier; authentication still requires the session cookie.
 - `POST /v1/auth/logout` requires `X-CSRF-Token`, revokes the session and clears its cookie.
 - Both course POST endpoints require an administrator cookie and `X-CSRF-Token`.
   API clients must retain cookies and use the new CSRF token returned after login.

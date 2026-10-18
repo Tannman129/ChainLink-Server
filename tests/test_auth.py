@@ -63,6 +63,42 @@ def test_player_denied_course_writes(anonymous_client, player, layout_payload):
     )
 
 
+@pytest.mark.parametrize("role", ["player", "administrator"])
+def test_authenticated_identity_tracks_account(anonymous_client, engine, player, role):
+    c = anonymous_client
+    with Session(engine) as db:
+        second_id = create_account(db, "second", "another-password-123", role).id
+
+    anonymous = c.get("/v1/auth/session").json()
+    assert set(anonymous) == {"user", "csrf_token"}
+    assert anonymous["user"] is None
+    for username, password, account_id, expected_role in [
+        ("alice", "a-long-password-123", player, "player"),
+        ("second", "another-password-123", second_id, role),
+    ]:
+        response = login(c, username, password)
+        assert response.status_code == 200
+        expected = {"id": str(account_id), "username": username, "role": expected_role}
+        # Exact keys also guard against exposing hashes or session storage fields.
+        assert set(response.json()) == {"user", "csrf_token"}
+        assert response.json()["user"] == expected
+        session = c.get("/v1/auth/session")
+        assert set(session.json()) == {"user", "csrf_token"}
+        assert session.json()["user"] == expected
+        assert session.json()["csrf_token"] == response.json()["csrf_token"]
+        assert session.headers["cache-control"] == "no-store"
+        assert response.headers["cache-control"] == "no-store"
+
+    assert (
+        c.post(
+            "/v1/auth/logout",
+            headers={"X-CSRF-Token": response.json()["csrf_token"]},
+        ).status_code
+        == 204
+    )
+    assert c.get("/v1/auth/session").json()["user"] is None
+
+
 def test_csrf_rotation_logout_and_storage(anonymous_client, engine, player):
     c = anonymous_client
     assert (
@@ -223,6 +259,7 @@ def test_session_persists_across_clients_and_rotates_on_relogin(
     with TestClient(app) as other:
         other.cookies.update(anonymous_client.cookies)
         assert other.get("/v1/auth/session").json()["user"] == {
+            "id": str(player),
             "username": "alice",
             "role": "player",
         }
