@@ -61,4 +61,4 @@ jobs:
           push: true
           tags: |
             ghcr.io/tannman129/chainlink-server:latest
-            ghcr.io/tannman129/chainlink-server:0.1.0
+            ghcr.io/tannman129/chainlink-server:0.2.0
