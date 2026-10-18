@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "chainlink-server"
+version = "0.1.0"
+description = "Optional, self-hosted disc golf course catalog"
+requires-python = ">=3.12"
+dependencies = ["fastapi>=0.115,<1", "uvicorn>=0.34,<1", "SQLAlchemy>=2.0.38,<2.1", "alembic>=1.14,<2", "psycopg[binary]>=3.2,<4", "pydantic-settings>=2.7,<3"]
+
+[project.optional-dependencies]
+test = ["pytest>=8,<10", "httpx>=0.28,<1"]
+
+[tool.setuptools.packages.find]
+include = ["app*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

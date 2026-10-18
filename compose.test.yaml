@@ -1,0 +1,25 @@
+# Isolated, disposable PostgreSQL integration stack; no host ports or persistent volumes.
+name: chainlink-tests
+services:
+  db:
+    image: postgres:17-bookworm
+    environment:
+      POSTGRES_DB: chainlink_test
+      POSTGRES_USER: chainlink_test
+      POSTGRES_PASSWORD: ${TEST_POSTGRES_PASSWORD:?Set TEST_POSTGRES_PASSWORD for the isolated test stack}
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U chainlink_test -d chainlink_test"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+  tests:
+    build:
+      context: .
+      target: test
+    environment:
+      TEST_DATABASE_URL: postgresql+psycopg://chainlink_test:${TEST_POSTGRES_PASSWORD:?Set TEST_POSTGRES_PASSWORD for the isolated test stack}@db:5432/chainlink_test
+    depends_on:
+      db:
+        condition: service_healthy
