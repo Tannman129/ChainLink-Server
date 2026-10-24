@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Container version="2">
+  <Name>chainlink-server</Name>
+  <Repository>ghcr.io/tannman129/chainlink-server:0.2.0</Repository>
+  <Registry>https://github.com/Tannman129/ChainLink-Server/pkgs/container/chainlink-server</Registry>
+  <Network>chainlink_net</Network>
+  <MyIP/>
+  <Shell>sh</Shell>
+  <Privileged>false</Privileged>
+  <Support>https://github.com/Tannman129/ChainLink-Server/issues</Support>
+  <Project>https://github.com/Tannman129/ChainLink-Server</Project>
+  <Overview>ChainLink Server: FastAPI service and WebUI for a self-hosted disc golf catalog. Create chainlink_net first. PostgreSQL and the existing release schema must be ready before API use. Set DATABASE_URL locally; see unraid/README.md for installation and safe adoption of existing containers.</Overview>
+  <Category>Other:</Category>
+  <WebUI>http://[IP]:[PORT:8000]/</WebUI>
+  <TemplateURL>https://raw.githubusercontent.com/Tannman129/ChainLink-Server/main/unraid/chainlink-server.xml</TemplateURL>
+  <Icon>https://raw.githubusercontent.com/Tannman129/ChainLink-Server/main/unraid/icons/chainlink-server.png</Icon>
+  <ExtraParams>--user=10001:10001 --workdir=/app --restart=unless-stopped</ExtraParams>
+  <PostArgs/>
+  <Config Name="WebUI / API port" Target="8000" Default="8010" Mode="tcp" Description="Host TCP port mapped to container port 8000." Type="Port" Display="always" Required="true" Mask="false">8010</Config>
+  <Config Name="DATABASE_URL" Target="DATABASE_URL" Default="" Mode="" Description="Required SQLAlchemy PostgreSQL URL using psycopg. Enter locally; see README for placeholder format and password encoding. Masking is not encryption." Type="Variable" Display="always" Required="true" Mask="true"/>
+  <Config Name="SESSION_COOKIE_SECURE" Target="SESSION_COOKIE_SECURE" Default="true" Mode="" Description="true for HTTPS; false only for trusted local HTTP testing. Secure cookies cannot authenticate over ordinary HTTP." Type="Variable" Display="always" Required="true" Mask="false">true</Config>
+</Container>

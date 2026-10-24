@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Container version="2">
+  <Name>chainlink-postgresql</Name>
+  <Repository>postgres:17</Repository>
+  <Registry>https://hub.docker.com/_/postgres</Registry>
+  <Network>chainlink_net</Network>
+  <MyIP/>
+  <Shell>sh</Shell>
+  <Privileged>false</Privileged>
+  <Support>https://github.com/Tannman129/ChainLink-Server/issues</Support>
+  <Project>https://www.postgresql.org/</Project>
+  <Overview>PostgreSQL 17 for ChainLink Server, reachable only through Docker networks unless separately exposed. Create chainlink_net and the password file before installation. No database ports are published. Initialization variables affect a new, empty data directory only; preserve existing data paths, PGDATA, and credentials when adopting an existing database.</Overview>
+  <Category>Other:</Category>
+  <WebUI/>
+  <TemplateURL>https://raw.githubusercontent.com/Tannman129/ChainLink-Server/main/unraid/chainlink-postgresql.xml</TemplateURL>
+  <Icon>https://raw.githubusercontent.com/Tannman129/ChainLink-Server/main/unraid/icons/postgresql.png</Icon>
+  <ExtraParams>--restart=unless-stopped</ExtraParams>
+  <PostArgs/>
+  <Config Name="PostgreSQL data" Target="/var/lib/postgresql/data" Default="/mnt/cache/appdata/chainlink/postgres" Mode="rw" Description="Persistent PostgreSQL 17 data. For an existing installation, retain its actual storage mapping and PGDATA." Type="Path" Display="always" Required="true" Mask="false">/mnt/cache/appdata/chainlink/postgres</Config>
+  <Config Name="PostgreSQL password file" Target="/run/secrets/postgres_password" Default="/mnt/cache/appdata/chainlink/secrets/postgres_password" Mode="ro" Description="Existing regular file containing only the database password; read-only mount. Create it before starting the container." Type="Path" Display="always" Required="true" Mask="false">/mnt/cache/appdata/chainlink/secrets/postgres_password</Config>
+  <Config Name="POSTGRES_DB" Target="POSTGRES_DB" Default="chainlink" Mode="" Description="Database to create on first initialization. Match DATABASE_URL; retain the existing name when adopting a database." Type="Variable" Display="always" Required="true" Mask="false">chainlink</Config>
+  <Config Name="POSTGRES_USER" Target="POSTGRES_USER" Default="chainlink" Mode="" Description="Initial database owner. Match DATABASE_URL; retain the existing role when adopting a database." Type="Variable" Display="always" Required="true" Mask="false">chainlink</Config>
+  <Config Name="POSTGRES_PASSWORD_FILE" Target="POSTGRES_PASSWORD_FILE" Default="/run/secrets/postgres_password" Mode="" Description="Container path of the mounted password file. If changed, update the mount target too. Do not also set POSTGRES_PASSWORD." Type="Variable" Display="always" Required="true" Mask="false">/run/secrets/postgres_password</Config>
+  <Config Name="PGDATA" Target="PGDATA" Default="/var/lib/postgresql/data" Mode="" Description="Data directory inside the persistent mount. Keep the actual existing PGDATA when adopting a database." Type="Variable" Display="always" Required="true" Mask="false">/var/lib/postgresql/data</Config>
+</Container>
