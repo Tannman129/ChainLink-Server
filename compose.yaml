@@ -1,7 +1,7 @@
 name: chainlink
 x-app: &app
   build: .
-  image: chainlink-server:0.1.0
+  image: chainlink-server:dev
   environment:
     SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:-true}
     SESSION_HOURS: ${SESSION_HOURS:-12}

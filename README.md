@@ -187,9 +187,178 @@ Browser tests run a temporary local HTTP server against the same isolated databa
 
 Compose stores PostgreSQL data in the `postgres_data` named volume (normally `chainlink_postgres_data`). It survives API rebuilds, container replacement, and normal `down`/`up` cycles. It is not a backup. Use PostgreSQL-aware backups such as `pg_dump`, store backups separately, and verify restores. Do not change PostgreSQL major versions against an existing data directory without an upgrade plan.
 
-For future Unraid deployment, map PostgreSQL's data directory to a persistent appdata location or preserve the named volume, keep PostgreSQL private, run migrations before API startup, and configure HTTPS and restrict access appropriately. Loopback binding requires an intentional port-mapping change for LAN clients. Configure backups and secrets before deployment. No Unraid template is shipped yet.
+For Unraid deployment, map PostgreSQL's data directory to a persistent appdata location or preserve the named volume, keep PostgreSQL private, run migrations before API startup, and configure HTTPS and restrict access appropriately. Loopback binding requires an intentional port-mapping change for LAN clients. Configure backups and secrets before deployment. See the [Unraid templates and deployment guide](unraid/README.md) for the existing `0.2.0` deployment.
 
-The existing `.github/workflows/docker.yml` runs the Python test suite for pull requests and pushes to `main`. After tests pass, pushes to `main` and manual workflow runs build the production image and publish `ghcr.io/tannman129/chainlink-server:latest` and `:0.1.0`. Pull requests do not publish images. Consumers can replace `build` and the local image tag with the GHCR image for both API and migrations. The workflow currently uses the default SQLite tests; PostgreSQL and browser tests can be run separately as documented above. Build dependencies have bounded compatible ranges; a release should establish reviewed dependency locking and image digest pinning for reproducibility.
+## Docker development builds and releases
+
+The workflow in [`.github/workflows/docker.yml`](.github/workflows/docker.yml)
+runs Python 3.13 tests (SQLite) and builds the Dockerfile's `production` target.
+Both checks must pass before publishing. PostgreSQL and browser tests remain
+separate opt-in checks described above.
+
+| Trigger | Published image |
+| --- | --- |
+| Pull request targeting `main` | None; tests and Docker build validation only |
+| Manual workflow run | None; tests and Docker build validation only |
+| Push to `main` | `ghcr.io/tannman129/chainlink-server:dev`, if the commit is still the tip of main |
+| Push of `vMAJOR.MINOR.PATCH`, e.g. `v0.2.1` | `ghcr.io/tannman129/chainlink-server:0.2.1` |
+
+`dev` moves as main changes and is intended for development. Local Compose builds
+use `chainlink-server:dev`; this local image is built from your checkout. For a
+registry image, remove `build` from the shared `x-app` mapping in a deployment
+copy of `compose.yaml` and set its `image` to the desired GHCR tag or digest so
+API and migrations use the same image. Do not use `--build` for that deployment.
+This workflow refuses to replace numbered releases and never updates `latest`.
+Existing `latest` images may therefore be stale. The Unraid template stays pinned
+to the already published `0.2.0`; `0.2.1` below is an example of a future release,
+not an available image or a deployment instruction. Python/application version
+metadata is independent of the image tag and is unchanged by this pipeline.
+
+Development publishing builds the image first, then queries GitHub for the
+current `main` SHA immediately before registry login and push. If it differs
+from the run's `GITHUB_SHA`, the job succeeds with publication skipped. API
+failures or invalid responses fail the job instead. The entire publish job is
+serialized per Git ref, including reruns: a newer workflow cannot publish while
+an older workflow holds the lock, and an older workflow arriving afterward
+fails the freshness check. If main advances after the check, the current push
+may finish before the newer workflow publishes. This prevents ordinary workflow
+ordering from replacing a newer dev image with an older commit; it does not
+control external publishers or deliberate main-branch rewinds.
+
+### Create a release
+
+1. Complete the manual migration checklist below before enabling publishing.
+   Merge the reviewed release changes, including this workflow, into `main` and
+   wait for its checks to pass. Choose a new, unused version and review the exact
+   commit to release. Tags must have three numeric components without leading
+   zeros, prerelease suffixes, or build metadata.
+2. From a clean, up-to-date checkout of that reviewed commit, an authorized
+   maintainer can create and push an annotated tag (commands for a future release):
+
+   ```bash
+   git tag -a v0.2.1 -m "ChainLink 0.2.1"
+   git push origin refs/tags/v0.2.1
+   ```
+
+3. Watch the tag's Actions run. It repeats tests and build validation, then checks
+   GHCR before publishing the exact version. A GitHub Release entry is optional;
+   the Git tag push is the publishing trigger. Verify the resulting image and
+   record its digest before any separate deployment:
+
+   ```bash
+   docker buildx imagetools inspect ghcr.io/tannman129/chainlink-server:0.2.1
+   ```
+
+The authenticated guard rejects redirects for both token and manifest requests;
+it never forwards credentials to a redirect destination or trusts a redirected
+404. It allows publishing only for an explicit registry `404 MANIFEST_UNKNOWN`
+at the requested manifest URL. An existing image, denied access, unexpected response,
+or network error fails the job. Rerunning a successful release therefore fails
+instead of replacing it when the run uses this hardened workflow. If a run fails,
+inspect whether the image was already published before retrying; fix a published
+release with a new patch version,
+never by deleting/reusing its image or moving its Git tag.
+
+Publish jobs for the same Git ref are serialized, covering the check and push.
+This protects releases made through this workflow; it is not a registry-level
+lock against another workflow or a person pushing directly to GHCR. Restrict
+package writers and use repository tag rules to restrict release tag creation,
+updates, and deletion to authorized maintainers. Configure the existing GHCR
+package to allow this repository's Actions token to read/write it. Only the
+publish job receives `packages: write`; checks receive `contents: read`.
+Credentials are passed through the job token and never printed by the guard.
+See [GitHub's concurrency documentation](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/control-workflow-concurrency)
+and the [registry API's error definitions](https://distribution.github.io/distribution/spec/api/).
+
+### Manual migration checklist: legacy publishers and GHCR access
+
+**Merging this file does not secure historical runs.** The previous workflow
+published `latest` and `0.2.0` on main pushes and manual runs without an existence
+check or concurrency lock. Rerunning one of those runs still uses its original
+commit/workflow, even after main is updated. It can overwrite `0.2.0` without
+running the new guard. An unrelated publisher can also write a version after
+the guard checks it but before this workflow pushes it. The check is not an
+atomic registry operation, and GHCR tags are not made immutable by this script.
+
+An administrator must perform these actions manually; this change performs none
+of them and does not alter Unraid, existing images, or package visibility:
+
+1. Record the currently deployed `0.2.0` digest and preserve the image and current
+   deployment settings. A digest is the reliable identity for rollback even if
+   someone later changes a tag. Do not update the deployment for this migration.
+2. In **Actions**, disable the existing `docker.yml` workflow during the
+   transition. Separately cancel its queued and running publish jobs; disabling
+   a workflow does not cancel existing runs. Inspect any other workflows capable
+   of pushing this package and disable their publishing paths as well.
+3. In the GHCR package's **Package settings**, review **Manage Actions access**
+   and **Manage access**. Temporarily remove/reduce repository write access while
+   unsafe publishers are being retired. Review inherited repository permissions
+   too; removing an explicit grant alone is insufficient when access is inherited.
+   Preserve required pull access. Remove unrelated repository/user/team write
+   grants and revoke unused PATs with package-write rights wherever they are
+   stored, including external automation. Do not delete the package or its tags.
+4. Inventory historical runs of the unsafe workflow. GitHub currently permits
+   reruns for 30 days from the original run. Before re-enabling this same workflow
+   identity, either archive required audit evidence and **manually delete the
+   unsafe workflow runs**, or keep publishing paused until all are outside that
+   window. Canceling runs alone does not retire their rerun capability. Re-enabling
+   this same `docker.yml` also re-enables eligible historical reruns. If retaining
+   rerunnable history is required, use a separately reviewed migration to a new
+   workflow identity and keep the legacy identity disabled; merely changing the
+   display name is insufficient. No runs or workflow files are deleted here.
+5. Review old branches/tags containing the unsafe `workflow_dispatch` definition:
+   do not dispatch that workflow at those refs. Restrict repository write/admin
+   access to trusted maintainers, protect main against force pushes and unreviewed
+   workflow edits, and add tag rules for `v*` restricting creation and preventing
+   updates/deletions, with tightly limited bypass permissions. Git tag rules do
+   not protect GHCR tags. If old-ref dispatch must be technically impossible
+   while retaining those refs, keep the old workflow identity disabled and use
+   the separate-identity migration above. For stronger separation from arbitrary
+   workflows in this repository, remove its package-write grant and use a dedicated
+   publishing repository with controlled access; that needs a separately reviewed
+   workflow change and is not implemented by this patch.
+6. After the legacy paths are retired, restore only the required publisher's
+   GHCR Actions write access and enable the hardened workflow. Review remaining
+   writers as part of each release. Package access is granted to a repository,
+   not to one YAML job: another authorized workflow can request `packages: write`.
+   The Actions default read-only token setting is good hygiene but does not block
+   an old workflow's explicit write request. Similarly, adding an environment
+   approval to the new workflow would not constrain old jobs that never use it.
+
+These controls prevent the retired/unauthorized paths from publishing; they do
+not stop a remaining package administrator or deliberately authorized writer
+from replacing a tag. Do not claim unconditional immutability. Keep publishing
+disabled if the necessary access restrictions and legacy retirement cannot yet
+be completed.
+
+References: [workflow disabling and cancellation behavior](https://docs.github.com/en/actions/how-tos/manage-workflow-runs/disable-and-enable-workflows),
+[historical rerun behavior and limits](https://docs.github.com/en/actions/how-tos/manage-workflow-runs/re-run-workflows-and-jobs),
+and [GHCR package access settings](https://docs.github.com/en/packages/learn-github-packages/configuring-a-packages-access-control-and-visibility).
+
+### Roll back a deployment
+
+Before upgrading, record the current image digest and configuration, retain the
+previous image, and take a verified PostgreSQL backup. Deployments are manual;
+publishing an image does not update Unraid or run migrations.
+
+To roll back, pause API writes and select the previous known-good release or
+recorded digest (`ghcr.io/tannman129/chainlink-server@sha256:...`). In Unraid,
+restore that Repository value and the saved container settings, then apply the
+change through the normal container update procedure. In a registry-based
+Compose deployment, restore the shared image reference and recreate the API
+with `docker compose up -d --no-deps --no-build api`. Keep the migrations service
+on the same image for subsequent operations. Preserve database storage, secrets,
+ports, and networks; do not delete volumes or retag/rebuild a released version.
+
+An older image must be compatible with the current database schema. An image
+rollback does not undo migrations; if incompatible, use a separately reviewed
+database recovery plan and verified backup before resuming traffic. Check
+`/health`, catalog reads, existing data, and sign-in before reopening access.
+The current working `0.2.0` Unraid deployment requires no action for this change.
+
+Build dependencies still use compatible version ranges and a moving Python base
+image tag. Release image digests identify the published artifact, but rebuilding
+the same source later is not guaranteed to produce identical bytes.
 
 ## Layout
 

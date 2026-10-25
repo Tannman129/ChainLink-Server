@@ -15,6 +15,8 @@ FROM runtime AS test
 USER root
 RUN pip install --no-cache-dir '.[test]'
 COPY tests ./tests
+COPY .github/scripts ./.github/scripts
+COPY .github/workflows ./.github/workflows
 USER 10001:10001
 HEALTHCHECK NONE
 CMD ["pytest", "-q", "-p", "no:cacheprovider"]
