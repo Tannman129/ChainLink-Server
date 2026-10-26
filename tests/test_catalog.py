@@ -31,6 +31,20 @@ def test_course_create_retrieve_list(client):
     assert client.get("/v1/courses?limit=1&offset=1").json() == []
 
 
+@pytest.mark.parametrize(
+    "payload",
+    [
+        {"name": ""},
+        {"name": "   "},
+        {"name": "x" * 201},
+        {"name": "Course", "description": "x" * 10001},
+    ],
+)
+def test_course_creation_rejects_invalid_fields(client, payload):
+    assert client.post("/v1/courses", json=payload).status_code == 422
+    assert client.get("/v1/courses").json() == []
+
+
 def test_graph_relationships_and_persistence(client, engine, graph):
     holes = graph["layouts"][0]["holes"]
     assert [h["number"] for h in holes] == [1, 2]

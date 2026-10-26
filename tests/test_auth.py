@@ -54,6 +54,7 @@ def test_player_denied_course_writes(anonymous_client, player, layout_payload):
     c.headers["X-CSRF-Token"] = response.json()["csrf_token"]
     assert c.get("/v1/auth/session").json()["user"]["role"] == "player"
     assert c.post("/v1/courses", json={"name": "Test"}).status_code == 403
+    assert c.get("/v1/courses").json() == []
     assert (
         c.post(
             "/v1/courses/00000000-0000-0000-0000-000000000000/layouts",
