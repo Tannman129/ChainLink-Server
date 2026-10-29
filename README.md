@@ -191,10 +191,19 @@ For Unraid deployment, map PostgreSQL's data directory to a persistent appdata l
 
 ## Docker development builds and releases
 
-The workflow in [`.github/workflows/docker.yml`](.github/workflows/docker.yml)
-runs Python 3.13 tests (SQLite) and builds the Dockerfile's `production` target.
+After merge and GitHub API verification, **Test and Publish ChainLink Server
+(Hardened)** in [`.github/workflows/docker-secure.yml`](.github/workflows/docker-secure.yml)
+is the active pipeline. It runs Python 3.13 tests (SQLite) and builds the
+Dockerfile's `production` target.
 Both checks must pass before publishing. PostgreSQL and browser tests remain
 separate opt-in checks described above.
+
+The legacy [`.github/workflows/docker.yml`](.github/workflows/docker.yml) remains
+byte-for-byte unchanged for history. Its GitHub workflow ID **388127598** must
+remain permanently `disabled_manually`: never re-enable it, rerun its historical
+runs, or dispatch it at historical refs. Older runs contain unsafe publishing
+code even though the current legacy file is hardened. A new filename establishes
+a separate workflow identity; changing only the display name would not.
 
 | Trigger | Published image |
 | --- | --- |
@@ -263,8 +272,9 @@ Publish jobs for the same Git ref are serialized, covering the check and push.
 This protects releases made through this workflow; it is not a registry-level
 lock against another workflow or a person pushing directly to GHCR. Restrict
 package writers and use repository tag rules to restrict release tag creation,
-updates, and deletion to authorized maintainers. Configure the existing GHCR
-package to allow this repository's Actions token to read/write it. Only the
+updates, and deletion to authorized maintainers. The existing GHCR package
+Actions access remains unchanged for this migration (only
+`Tannman129/ChainLink-Server`, with Admin permission). Only the
 publish job receives `packages: write`; checks receive `contents: read`.
 Credentials are passed through the job token and never printed by the guard.
 See [GitHub's concurrency documentation](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/control-workflow-concurrency)
@@ -272,64 +282,48 @@ and the [registry API's error definitions](https://distribution.github.io/distri
 
 ### Manual migration checklist: legacy publishers and GHCR access
 
-**Merging this file does not secure historical runs.** The previous workflow
-published `latest` and `0.2.0` on main pushes and manual runs without an existence
-check or concurrency lock. Rerunning one of those runs still uses its original
-commit/workflow, even after main is updated. It can overwrite `0.2.0` without
-running the new guard. An unrelated publisher can also write a version after
-the guard checks it but before this workflow pushes it. The check is not an
-atomic registry operation, and GHCR tags are not made immutable by this script.
+**The legacy workflow must remain disabled permanently.** Workflow ID
+**388127598** (`docker.yml`) was manually disabled, with API state confirmed as
+`disabled_manually` before this migration. Historical runs can use older code
+that published `latest` and `0.2.0` without an existence check or concurrency
+lock. Updating main does not make those runs safe to rerun. Do not re-enable
+this identity or dispatch it at historical refs, even though its current YAML
+is hardened. Retain the legacy file and run history; do not delete them.
 
-An administrator must perform these actions manually; this change performs none
-of them and does not alter Unraid, existing images, or package visibility:
+The new `docker-secure.yml` copies the reviewed hardened pipeline into a distinct
+workflow identity. This checkout alone does not make that workflow live. An
+administrator must perform the following verification and merge steps manually;
+this change does not modify remote Actions state, package permissions, images,
+deployments, data, or repository visibility:
 
-1. Record the currently deployed `0.2.0` digest and preserve the image and current
-   deployment settings. A digest is the reliable identity for rollback even if
-   someone later changes a tag. Do not update the deployment for this migration.
-2. In **Actions**, disable the existing `docker.yml` workflow during the
-   transition. Separately cancel its queued and running publish jobs; disabling
-   a workflow does not cancel existing runs. Inspect any other workflows capable
-   of pushing this package and disable their publishing paths as well.
-3. In the GHCR package's **Package settings**, review **Manage Actions access**
-   and **Manage access**. Temporarily remove/reduce repository write access while
-   unsafe publishers are being retired. Review inherited repository permissions
-   too; removing an explicit grant alone is insufficient when access is inherited.
-   Preserve required pull access. Remove unrelated repository/user/team write
-   grants and revoke unused PATs with package-write rights wherever they are
-   stored, including external automation. Do not delete the package or its tags.
-4. Inventory historical runs of the unsafe workflow. GitHub currently permits
-   reruns for 30 days from the original run. Before re-enabling this same workflow
-   identity, either archive required audit evidence and **manually delete the
-   unsafe workflow runs**, or keep publishing paused until all are outside that
-   window. Canceling runs alone does not retire their rerun capability. Re-enabling
-   this same `docker.yml` also re-enables eligible historical reruns. If retaining
-   rerunnable history is required, use a separately reviewed migration to a new
-   workflow identity and keep the legacy identity disabled; merely changing the
-   display name is insufficient. No runs or workflow files are deleted here.
-5. Review old branches/tags containing the unsafe `workflow_dispatch` definition:
-   do not dispatch that workflow at those refs. Restrict repository write/admin
-   access to trusted maintainers, protect main against force pushes and unreviewed
-   workflow edits, and add tag rules for `v*` restricting creation and preventing
-   updates/deletions, with tightly limited bypass permissions. Git tag rules do
-   not protect GHCR tags. If old-ref dispatch must be technically impossible
-   while retaining those refs, keep the old workflow identity disabled and use
-   the separate-identity migration above. For stronger separation from arbitrary
-   workflows in this repository, remove its package-write grant and use a dedicated
-   publishing repository with controlled access; that needs a separately reviewed
-   workflow change and is not implemented by this patch.
-6. After the legacy paths are retired, restore only the required publisher's
-   GHCR Actions write access and enable the hardened workflow. Review remaining
-   writers as part of each release. Package access is granted to a repository,
-   not to one YAML job: another authorized workflow can request `packages: write`.
-   The Actions default read-only token setting is good hygiene but does not block
-   an old workflow's explicit write request. Similarly, adding an environment
-   approval to the new workflow would not constrain old jobs that never use it.
+1. Preserve the currently deployed `0.2.0` image digest and current Unraid
+   deployment. A digest is the reliable identity for rollback even if someone
+   later changes a tag. Do not deploy `dev` or alter the database for this migration.
+2. Review and commit/push the migration branch, then open a PR to `main`. Before
+   merging, inspect branch and Actions permissions and queued/running jobs,
+   including legacy publishing jobs. Disabling a workflow does not cancel jobs
+   already queued or running; resolve any unsafe jobs before merging.
+3. Merge the reviewed migration. Verify through the GitHub API that `docker.yml`
+   still has ID **388127598** and state `disabled_manually`, and that
+   `docker-secure.yml` has a **different ID** and state `active`. Never enable the
+   legacy workflow as part of this verification. Check a fresh hardened workflow
+   run for successful tests/build validation and the expected `:dev` publication
+   from current main. Publication does not authorize a deployment.
+4. Leave GHCR **Manage Actions access** unchanged during this migration: only
+   `Tannman129/ChainLink-Server` has access, with Admin permission. Recheck package
+   access and consider branch/tag protection separately; do not reflexively
+   change Admin to Write. Review other package writers and old branches/tags
+   containing unsafe workflow definitions as a separate permissions review.
+   Git tag protection does not protect GHCR image tags.
 
-These controls prevent the retired/unauthorized paths from publishing; they do
-not stop a remaining package administrator or deliberately authorized writer
-from replacing a tag. Do not claim unconditional immutability. Keep publishing
-disabled if the necessary access restrictions and legacy retirement cannot yet
-be completed.
+Versioned images are guarded against replacement by the hardened pipeline, but
+**GHCR tags are not truly immutable**. The existence check and push are not an
+atomic registry operation; another authorized publisher can write a tag between
+them or replace it later. Package access is granted to a repository, not to one
+YAML job, so another authorized workflow can request `packages: write`. Default
+read-only token permissions or approvals added to a new workflow do not constrain
+old jobs with explicit write permissions. Keep the legacy identity disabled and
+retain digest-based rollback records; do not claim unconditional immutability.
 
 References: [workflow disabling and cancellation behavior](https://docs.github.com/en/actions/how-tos/manage-workflow-runs/disable-and-enable-workflows),
 [historical rerun behavior and limits](https://docs.github.com/en/actions/how-tos/manage-workflow-runs/re-run-workflows-and-jobs),
