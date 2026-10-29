@@ -1,7 +1,98 @@
+import { csrf, currentUser, session } from "./auth.js";
+
 const view = document.querySelector("#view");
 const pageSize = 12;
 let requestController;
 let initialNavigation = true;
+const courseDialog = document.querySelector("#course-dialog");
+const courseForm = document.querySelector("#course-form");
+const courseMessage = document.querySelector("#course-message");
+const courseSave = document.querySelector("#course-save");
+const courseCancel = document.querySelector("#course-cancel");
+const courseSignIn = document.querySelector("#course-sign-in");
+const courseFeedback = document.querySelector("#course-feedback");
+let savingCourse = false;
+let createdCourseHash;
+
+function updateCourseAccess() {
+  const administrator = currentUser?.role === "administrator";
+  const add = document.querySelector("#add-course");
+  if (add) add.hidden = !administrator;
+  courseSave.disabled = savingCourse || !administrator;
+  courseSignIn.hidden = administrator || !courseDialog.open;
+}
+window.addEventListener("chainlink-session-changed", updateCourseAccess);
+
+function addCourse() {
+  if (currentUser?.role !== "administrator") return;
+  courseMessage.textContent = "";
+  courseDialog.showModal();
+}
+courseCancel.addEventListener("click", () => courseDialog.close());
+courseSignIn.addEventListener("click", () => document.querySelector("#sign-in").click());
+courseDialog.addEventListener("cancel", event => {
+  if (savingCourse) event.preventDefault();
+});
+courseDialog.addEventListener("close", () => {
+  courseForm.reset();
+  courseForm.elements.name.setCustomValidity("");
+  courseMessage.textContent = "";
+  updateCourseAccess();
+});
+courseForm.elements.name.addEventListener("input", () => {
+  courseForm.elements.name.setCustomValidity("");
+});
+courseForm.addEventListener("submit", async event => {
+  event.preventDefault();
+  if (savingCourse || currentUser?.role !== "administrator") return;
+  const name = courseForm.elements.name;
+  name.setCustomValidity(name.value.trim() ? "" : "Enter a course name.");
+  if (!courseForm.reportValidity()) return;
+  const payload = { name: name.value.trim(), description: courseForm.elements.description.value || null };
+  savingCourse = true;
+  updateCourseAccess();
+  courseCancel.disabled = true;
+  name.disabled = true;
+  courseForm.elements.description.disabled = true;
+  courseForm.setAttribute("aria-busy", "true");
+  courseMessage.textContent = "Saving course…";
+  try {
+    const response = await fetch("/v1/courses", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-CSRF-Token": csrf },
+      body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(12000),
+    });
+    if (!response.ok) {
+      if (response.status === 401 || response.status === 403) {
+        await session();
+        throw new Error(currentUser?.role === "administrator"
+          ? "Your security token was refreshed. Your entries are preserved; select Save to try again."
+          : "Administrator sign-in is required to save a course. Your entries have been preserved.");
+      }
+      throw new Error(response.status === 422
+        ? "Check the course name (1–200 characters) and description (up to 10,000 characters). Your entries have been preserved."
+        : "The server could not save the course. Your entries have been preserved; please try again.");
+    }
+    const course = await response.json();
+    courseDialog.close();
+    createdCourseHash = `#courses/${encodeURIComponent(course.id)}`;
+    courseFeedback.textContent = `Course “${course.name}” created successfully.`;
+    courseFeedback.hidden = false;
+    location.hash = createdCourseHash;
+  } catch (error) {
+    courseMessage.textContent = error instanceof TypeError || error.name === "TimeoutError"
+      ? "Couldn’t confirm whether the course was saved. Your entries are preserved. Check the course list before trying again."
+      : error.message;
+  } finally {
+    savingCourse = false;
+    courseCancel.disabled = false;
+    name.disabled = false;
+    courseForm.elements.description.disabled = false;
+    courseForm.setAttribute("aria-busy", "false");
+    updateCourseAccess();
+  }
+});
 
 // Catalog data is assigned only through textContent, never interpreted as HTML.
 function element(tag, className, text) {
@@ -123,7 +214,7 @@ function dashboard(signal) {
     element(
       "span",
       "",
-      "Browsing mode. Catalog editing is not available in the WebUI.",
+      "Administrators can add courses from the Courses page. Layout editing is not available yet.",
     ),
   );
   library.append(libraryHead, courseList, libraryFoot);
@@ -333,7 +424,7 @@ function dashboard(signal) {
         state(
           courseList,
           "Your catalog starts here.",
-          "No courses are stored yet. This WebUI is read-only; catalog creation is available through the API.",
+          "No courses are stored yet. Administrators can add a course from the Courses page.",
         );
         state(
           graphView,
@@ -414,7 +505,15 @@ async function catalog(section, page, signal) {
     ),
   );
   const refresh = button("Refresh", navigate);
-  toolbar.append(refresh);
+  const actions = element("div", "account-controls");
+  actions.append(refresh);
+  if (section === "courses") {
+    const add = button("Add Course", addCourse, "button primary");
+    add.id = "add-course";
+    add.hidden = currentUser?.role !== "administrator";
+    actions.append(add);
+  }
+  toolbar.append(actions);
   const content = element("div", "course-grid");
   const visible = courses.slice(0, pageSize);
   for (const course of visible) {
@@ -446,7 +545,7 @@ async function catalog(section, page, signal) {
       content,
       page === 1 ? "The fairway is wide open." : "No courses on this page.",
       page === 1
-        ? "There are no courses in this catalog yet. Courses can be added through the existing API; this WebUI is read-only."
+        ? "There are no courses in this catalog yet. An administrator can add a course from the Courses page."
         : "Return to the previous page to keep exploring.",
     );
   const pagination = element("nav", "pagination");
@@ -920,6 +1019,7 @@ const pages = {
   ],
 };
 async function navigate() {
+  if (location.hash !== createdCourseHash) courseFeedback.hidden = true;
   requestController?.abort();
   requestController = new AbortController();
   const { signal } = requestController;

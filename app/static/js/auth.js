@@ -3,16 +3,19 @@ const form = document.querySelector('#login-form');
 const message = document.querySelector('#login-message');
 const signIn = document.querySelector('#sign-in');
 const signOut = document.querySelector('#sign-out');
-let csrf;
+export let csrf;
+export let currentUser = null;
 
-async function session() {
+export async function session() {
   const response = await fetch('/v1/auth/session', { cache: 'no-store' });
   if (!response.ok) throw new Error('Sign in is unavailable. Try again.');
   const data = await response.json();
   csrf = data.csrf_token;
+  currentUser = data.user;
   document.querySelector('#account-name').textContent = data.user?.username || '';
   signIn.hidden = !!data.user;
   signOut.hidden = !data.user;
+  window.dispatchEvent(new Event('chainlink-session-changed'));
 }
 signIn.addEventListener('click', async () => {
   message.textContent = '';

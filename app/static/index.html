@@ -29,6 +29,21 @@
         <div class="account-controls"><button class="button primary" type="submit">Sign in</button><button class="button" id="login-cancel" type="button">Cancel</button></div>
       </form>
     </dialog>
+    <dialog id="course-dialog" aria-labelledby="course-form-title">
+      <form id="course-form">
+        <h2 id="course-form-title">Add Course</h2>
+        <label for="course-name">Course name (required)</label>
+        <input id="course-name" name="name" maxlength="200" required>
+        <label for="course-description">Description (optional)</label>
+        <textarea id="course-description" name="description" maxlength="10000" rows="4"></textarea>
+        <p id="course-message" role="status" aria-live="polite"></p>
+        <div class="account-controls">
+          <button class="button primary" id="course-save" type="submit">Save</button>
+          <button class="button" id="course-cancel" type="button">Cancel</button>
+          <button class="button" id="course-sign-in" type="button" hidden>Sign in as administrator</button>
+        </div>
+      </form>
+    </dialog>
     <div class="app-shell">
       <aside class="sidebar">
         <a class="brand" href="#dashboard" aria-label="ChainLink dashboard"
@@ -71,7 +86,7 @@
               <use href="/static/icons.svg#server"></use>
             </svg>
             <div>
-              ChainLink Server<small>Local network · Read-only UI</small>
+              ChainLink Server<small>Local network · Course catalog</small>
             </div>
           </div>
           <a href="/docs"
@@ -103,6 +118,7 @@
               >Browse courses <span aria-hidden="true">↗</span></a
             >
           </section>
+          <p id="course-feedback" class="success-message" role="status" hidden></p>
           <div id="view" aria-live="polite" aria-busy="false"></div>
           <noscript
             ><div class="state">

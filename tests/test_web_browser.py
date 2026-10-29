@@ -754,3 +754,198 @@ def test_statistics_trend_length_selection(
     playwright.expect(
         page.get_by_role("region", name="Monthly scoring trend")
     ).to_contain_text("+9")
+
+
+@pytest.mark.parametrize("width", [390, 1440])
+def test_add_course_admin_creation(history_page, live_server, client, width):
+    page = history_page
+    page.set_viewport_size({"width": width, "height": 844})
+    page.goto(live_server + "/#courses")
+    page.get_by_role("button", name="Add Course", exact=True).click()
+    dialog = page.get_by_role("dialog", name="Add Course", exact=True)
+    playwright.expect(dialog).to_be_visible()
+    page.get_by_label("Course name (required)").fill("  New Course  ")
+    description = "Wooded fairways\nTwo loops" if width == 1440 else ""
+    page.get_by_label("Description (optional)").fill(description)
+    assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
+    bounds = dialog.bounding_box()
+    assert bounds["x"] >= 0 and bounds["x"] + bounds["width"] <= width
+    assert page.locator("#course-save").bounding_box()["height"] >= 44
+    with page.expect_response(
+        lambda response: response.url.endswith("/v1/courses")
+        and response.request.method == "POST"
+    ) as created:
+        dialog.get_by_role("button", name="Save", exact=True).click()
+    response = created.value
+    assert response.status == 201
+    assert response.request.headers.get("x-csrf-token")
+    course = response.json()
+    assert course["name"] == "New Course"
+    assert course["description"] == (description or None)
+    playwright.expect(page).to_have_url(live_server + f"/#courses/{course['id']}")
+    playwright.expect(dialog).not_to_be_visible()
+    playwright.expect(page.locator("#course-feedback")).to_have_text(
+        "Course “New Course” created successfully."
+    )
+    playwright.expect(page.get_by_role("heading", name="New Course", exact=True)).to_be_visible()
+    assert len(client.get("/v1/courses").json()) == 1
+
+
+@pytest.mark.parametrize("role", [None, "player"])
+def test_add_course_denied_to_non_admins(page, live_server, client, engine, role):
+    if role:
+        with Session(engine) as db:
+            create_account(db, "course-player", "player-password-123", role)
+        response = client.post("/v1/auth/login", json={
+            "username": "course-player", "password": "player-password-123",
+        })
+        assert response.status_code == 200
+        page.context.add_cookies([
+            {"name": COOKIE, "value": client.cookies.get(COOKIE), "url": live_server}
+        ])
+    page.goto(live_server + "/#courses")
+    playwright.expect(page.get_by_role("button", name="Refresh", exact=True)).to_be_visible()
+    playwright.expect(page.get_by_role("button", name="Add Course", exact=True)).not_to_be_visible()
+    # Unhiding or triggering the button cannot bypass either client or server checks.
+    page.locator("#add-course").dispatch_event("click")
+    playwright.expect(page.locator("#course-dialog")).not_to_be_visible()
+    status = page.evaluate("""async () => {
+        const auth = await (await fetch('/v1/auth/session')).json();
+        const response = await fetch('/v1/courses', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', 'X-CSRF-Token': auth.csrf_token},
+            body: JSON.stringify({name: 'Forbidden course'})
+        });
+        return response.status;
+    }""")
+    assert status == (403 if role else 401)
+    assert client.get("/v1/courses").json() == []
+
+
+def test_add_course_updates_after_login_and_logout(page, live_server):
+    page.goto(live_server + "/#courses")
+    page.get_by_role("button", name="Sign in", exact=True).click()
+    page.get_by_label("Username", exact=True).fill("test-admin")
+    page.get_by_label("Password", exact=True).fill("test-password-123")
+    page.locator("#login-form").get_by_role("button", name="Sign in", exact=True).click()
+    playwright.expect(page.locator("#add-course")).to_be_visible()
+    page.get_by_role("button", name="Sign out", exact=True).click()
+    playwright.expect(page.locator("#add-course")).not_to_be_visible()
+    page.locator("#add-course").dispatch_event("click")
+    playwright.expect(page.locator("#course-dialog")).not_to_be_visible()
+
+
+def test_add_course_validation_and_cancel(history_page, live_server, client):
+    page = history_page
+    posts = []
+    page.on("request", lambda request: posts.append(request) if request.method == "POST" else None)
+    page.goto(live_server + "/#courses")
+    page.get_by_role("button", name="Add Course", exact=True).click()
+    name = page.get_by_label("Course name (required)")
+    page.get_by_role("button", name="Save", exact=True).click()
+    assert not name.evaluate("node => node.validity.valid")
+    name.fill("   ")
+    page.get_by_role("button", name="Save", exact=True).click()
+    assert name.evaluate("node => node.validationMessage") == "Enter a course name."
+    assert not posts
+    name.fill("Discard me")
+    page.get_by_role("button", name="Cancel", exact=True).click()
+    playwright.expect(page.locator("#course-dialog")).not_to_be_visible()
+    page.get_by_role("button", name="Add Course", exact=True).click()
+    playwright.expect(name).to_have_value("")
+    page.keyboard.press("Escape")
+    playwright.expect(page.locator("#course-dialog")).not_to_be_visible()
+    assert client.get("/v1/courses").json() == []
+
+
+@pytest.mark.parametrize("failure", [422, 500, "network"])
+def test_add_course_preserves_input_on_error(history_page, live_server, client, failure):
+    page = history_page
+    def fail(route):
+        if failure == "network":
+            route.abort()
+        else:
+            route.fulfill(status=failure, json={"detail": "Failed"})
+    page.route("**/v1/courses", fail)
+    page.goto(live_server + "/#courses")
+    page.get_by_role("button", name="Add Course", exact=True).click()
+    page.get_by_label("Course name (required)").fill("Retry Course")
+    page.get_by_label("Description (optional)").fill("Keep this description")
+    page.get_by_role("button", name="Save", exact=True).click()
+    playwright.expect(page.locator("#course-message")).to_contain_text("preserved")
+    playwright.expect(page.get_by_label("Course name (required)")).to_have_value("Retry Course")
+    playwright.expect(page.get_by_label("Description (optional)")).to_have_value("Keep this description")
+    playwright.expect(page.locator("#course-save")).to_be_enabled()
+    assert client.get("/v1/courses").json() == []
+    page.unroute("**/v1/courses", fail)
+    page.get_by_role("button", name="Save", exact=True).click()
+    playwright.expect(page.locator("#course-feedback")).to_contain_text("created successfully")
+    assert len(client.get("/v1/courses").json()) == 1
+
+
+def test_add_course_prevents_duplicate_submissions(history_page, live_server, client):
+    page = history_page
+    pending = []
+    page.route("**/v1/courses", lambda route: pending.append(route))
+    page.goto(live_server + "/#courses")
+    page.get_by_role("button", name="Add Course", exact=True).click()
+    page.get_by_label("Course name (required)").fill("Only once")
+    with page.expect_request(lambda request: request.method == "POST"):
+        page.get_by_role("button", name="Save", exact=True).click()
+    playwright.expect(page.locator("#course-save")).to_be_disabled()
+    playwright.expect(page.locator("#course-cancel")).to_be_disabled()
+    page.locator("#course-form").dispatch_event("submit")
+    page.keyboard.press("Escape")
+    playwright.expect(page.locator("#course-dialog")).to_be_visible()
+    assert len(pending) == 1
+    pending[0].continue_()
+    playwright.expect(page.locator("#course-feedback")).to_contain_text("created successfully")
+    assert len(client.get("/v1/courses").json()) == 1
+
+
+def test_add_course_refreshes_csrf_before_retry(history_page, live_server, client):
+    page = history_page
+    def missing_csrf(route):
+        route.continue_(headers={
+            key: value for key, value in route.request.headers.items()
+            if key.lower() != "x-csrf-token"
+        })
+    page.route("**/v1/courses", missing_csrf)
+    page.goto(live_server + "/#courses")
+    page.get_by_role("button", name="Add Course", exact=True).click()
+    page.get_by_label("Course name (required)").fill("Retry with token")
+    page.get_by_role("button", name="Save", exact=True).click()
+    playwright.expect(page.locator("#course-message")).to_contain_text("security token was refreshed")
+    playwright.expect(page.get_by_label("Course name (required)")).to_have_value("Retry with token")
+    playwright.expect(page.locator("#course-save")).to_be_enabled()
+    assert client.get("/v1/courses").json() == []
+    page.unroute("**/v1/courses", missing_csrf)
+    page.get_by_role("button", name="Save", exact=True).click()
+    playwright.expect(page.locator("#course-feedback")).to_contain_text("created successfully")
+    assert len(client.get("/v1/courses").json()) == 1
+
+
+def test_add_course_expired_session_preserves_input(history_page, live_server, client, engine):
+    page = history_page
+    page.goto(live_server + "/#courses")
+    page.get_by_role("button", name="Add Course", exact=True).click()
+    page.get_by_label("Course name (required)").fill("Keep after expiry")
+    with Session(engine) as db:
+        db.get(WebSession, digest(client.cookies.get(COOKIE))).expires_at = 0
+        db.commit()
+    page.get_by_role("button", name="Save", exact=True).click()
+    playwright.expect(page.locator("#course-message")).to_contain_text("Administrator sign-in is required")
+    playwright.expect(page.get_by_label("Course name (required)")).to_have_value("Keep after expiry")
+    playwright.expect(page.locator("#course-save")).to_be_disabled()
+    playwright.expect(page.locator("#add-course")).not_to_be_visible()
+    assert client.get("/v1/courses").json() == []
+    page.get_by_role("button", name="Sign in as administrator", exact=True).click()
+    page.get_by_label("Username", exact=True).fill("test-admin")
+    page.get_by_label("Password", exact=True).fill("test-password-123")
+    page.locator("#login-form").get_by_role("button", name="Sign in", exact=True).click()
+    playwright.expect(page.locator("#login-dialog")).not_to_be_visible()
+    playwright.expect(page.get_by_label("Course name (required)")).to_have_value("Keep after expiry")
+    playwright.expect(page.locator("#course-save")).to_be_enabled()
+    page.get_by_role("button", name="Save", exact=True).click()
+    playwright.expect(page.locator("#course-feedback")).to_contain_text("created successfully")
+    assert len(client.get("/v1/courses").json()) == 1
