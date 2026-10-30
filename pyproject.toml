@@ -17,7 +17,7 @@ browser = ["playwright>=1.50,<2"]
 include = ["app*"]
 
 [tool.setuptools.package-data]
-app = ["static/*.html", "static/*.svg", "static/css/*.css", "static/js/*.js", "static/images/*.webp"]
+app = ["static/*.html", "static/*.svg", "static/css/*.css", "static/js/*.js", "static/images/*.webp", "static/images/*.png"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

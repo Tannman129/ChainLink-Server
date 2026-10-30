@@ -293,7 +293,7 @@ def test_dashboard_layout_failure_retry(page, live_server, graph):
 
 
 @pytest.mark.parametrize("width", [390, 834, 1440])
-def test_midnight_red_dashboard_preview(
+def test_orange_dashboard_preview(
     page, live_server, graph, client, layout_payload, width
 ):
     for name, description in [
@@ -319,24 +319,26 @@ def test_midnight_red_dashboard_preview(
     playwright.expect(page.locator("#catalog-count")).to_have_text("4")
     playwright.expect(page.locator("#layout-count")).to_have_text("2")
     playwright.expect(page.get_by_text("● API reachable")).to_be_visible()
-    artwork = page.get_by_alt_text("ChainLink Midnight Red disc golf basket artwork")
+    artwork = page.get_by_alt_text("ChainLink orange disc golf basket artwork")
     playwright.expect(artwork).to_be_visible()
     assert artwork.evaluate("image => image.complete && image.naturalWidth > 0")
     assert artwork.evaluate(
-        "image => Math.abs(image.clientWidth / image.clientHeight - 1134 / 1387) < 0.015"
+        "image => Math.abs(image.clientWidth / image.clientHeight - 1) < 0.015"
     )
     assert artwork.evaluate("image => image.clientWidth <= 96")
     assert (
         page.locator(".metrics-grid").bounding_box()["y"] < artwork.bounding_box()["y"]
     )
-    assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
+    assert page.evaluate("document.documentElement.scrollWidth <= innerWidth"), page.evaluate(
+        "[...document.querySelectorAll('body *')].filter(e => e.getBoundingClientRect().right > innerWidth).map(e => e.className)"
+    )
     colors = page.evaluate("""() => {
         const styles = getComputedStyle(document.documentElement);
         return ['--bg', '--accent', '--surface', '--text', '--muted', '--line'].map(name => styles.getPropertyValue(name).trim().toLowerCase());
     }""")
-    assert colors == ["#101014", "#e53935", "#1c1c22", "#ffffff", "#b0b0b8", "#50505a"]
+    assert colors == ["#000000", "#ff6a00", "#1c1c1e", "#ffffff", "#b0b0b8", "#50505a"]
     page.screenshot(
-        path=str(Path(gettempdir()) / f"chainlink-midnight-red-{width}.png"),
+        path=str(Path(gettempdir()) / f"chainlink-orange-{width}.png"),
         full_page=True,
         animations="disabled",
     )
@@ -345,7 +347,7 @@ def test_midnight_red_dashboard_preview(
     assert page.locator("details[open]").count() == 1
     assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
     page.screenshot(
-        path=str(Path(gettempdir()) / f"chainlink-midnight-red-layout-{width}.png"),
+        path=str(Path(gettempdir()) / f"chainlink-orange-layout-{width}.png"),
         full_page=True,
         animations="disabled",
     )
@@ -353,7 +355,7 @@ def test_midnight_red_dashboard_preview(
     playwright.expect(page.locator("#layout-count")).to_have_text("2")
     page.emulate_media(reduced_motion="reduce")
     assert (
-        page.locator(".heading-action").evaluate(
+        page.locator("#sign-in").evaluate(
             "node => getComputedStyle(node).transitionDuration"
         )
         == "0s"
