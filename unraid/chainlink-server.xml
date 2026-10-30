@@ -13,7 +13,7 @@
   <Category>Other:</Category>
   <WebUI>http://[IP]:[PORT:8000]/</WebUI>
   <TemplateURL>https://raw.githubusercontent.com/Tannman129/ChainLink-Server/main/unraid/chainlink-server.xml</TemplateURL>
-  <Icon>https://raw.githubusercontent.com/Tannman129/ChainLink-Server/main/unraid/icons/chainlink-server.png</Icon>
+  <Icon>https://raw.githubusercontent.com/Tannman129/ChainLink-Server/main/unraid/icons/chainlink-server.png?v=orange-1</Icon>
   <ExtraParams>--user=10001:10001 --workdir=/app --restart=unless-stopped</ExtraParams>
   <PostArgs/>
   <Config Name="WebUI / API port" Target="8000" Default="8010" Mode="tcp" Description="Host TCP port mapped to container port 8000." Type="Port" Display="always" Required="true" Mask="false">8010</Config>

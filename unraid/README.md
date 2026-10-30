@@ -255,11 +255,14 @@ version or data layout without a separate tested PostgreSQL upgrade plan.
 
 ## Icon provenance
 
-- `chainlink-server.png`: 256 × 256 PNG, full uncropped artwork resized with
-  aspect ratio preserved and centered on black. Source:
-  `/home/tannman/AndroidStudioProjects/DiscGolf/assets/Midnight Red Disc Golf Basket.png`.
-  The source file is untouched. Source SHA-256:
-  `9aff23b27741b16f42cdef55946d56ca54e4b1e1061154f81401dcd035ac1649`.
+- `chainlink-server.png`: user-approved 512 × 512 RGBA PNG, copied unchanged
+  from `ChainLink_Transparent_Assets/chainlink-unraid-icon-512.png`.
+  SHA-256: `bf4ff88a4a1780d11024affc45e52c7c6038cd579884409f917d1d8a1fd9c6d7`.
+  Transparent pixels surround the basket itself; light and charcoal previews
+  confirm there is no opaque background rectangle. Interior black ink and
+  shadows are preserved. The supplied 1024px WebP and 128px favicon PNG are
+  separately installed under `app/static/images/`; only the 240px WebP variant
+  is resized, proportionally with Lanczos filtering and alpha preserved.
 - `postgresql.png`: unchanged 120 × 120 three-color elephant downloaded from
   the [official PostgreSQL logo collection](https://wiki.postgresql.org/wiki/Logo),
   [direct PNG source](https://wiki.postgresql.org/images/3/30/PostgreSQL_logo.3colors.120x120.png).
@@ -268,6 +271,39 @@ version or data layout without a separate tested PostgreSQL upgrade plan.
   PostgreSQL Community Association of Canada; see the linked collection's
   trademark policy. This separate icon identifies PostgreSQL, without implying
   that PostgreSQL endorses ChainLink.
+
+### Installed icon refresh after merge
+
+The repository PNG and template now use the approved transparent orange basket.
+The installed Unraid template was not accessed or changed. Updating repository
+files does not update the running installation's saved Icon URL or cache.
+
+After these changes have been merged to public `main`:
+
+1. Open the public raw URL in a signed-out browser and confirm the new PNG:
+   `https://raw.githubusercontent.com/Tannman129/ChainLink-Server/main/unraid/icons/chainlink-server.png?v=orange-1`.
+   The query suffix refreshes the URL used by GitHub/browser caches; it does not
+   make unpublished artwork available.
+2. Privately back up the installed user template, normally
+   `/boot/config/plugins/dockerMan/templates-user/my-chainlink-server.xml`.
+   Its name may differ, and it may contain credentials. Do not replace it with
+   repository defaults.
+3. On **Docker**, click the installed ChainLink icon → **Edit** → **Advanced
+   View**. Change only **Icon URL** to the verified URL above. Review all settings
+   before **Apply**; applying may recreate the API container, so schedule it
+   appropriately. Keep Repository, ports, mounts, network, and credentials.
+4. Hard-refresh the Docker page. If the old icon persists, back up and remove
+   only the matching `<actual-container-name>-icon.png` files, if present, from
+   `/var/lib/docker/unraid/images/` and
+   `/var/local/emhttp/plugins/dynamix.docker.manager/images/`, then reload the
+   Docker page. Confirm the matching file first; cache paths vary by version.
+   Do not clear whole directories or change PostgreSQL.
+
+See [Unraid container editing documentation](https://docs.unraid.net/unraid-os/using-unraid-to/run-docker-containers/managing-and-customizing-containers/)
+and the [Unraid icon-cache discussion](https://forums.unraid.net/topic/137389-change-docker-container-icons/).
+The Web UI assets are bundled in the API image; Unraid's dashboard icon comes
+from host template metadata and caching. A repository XML update alone does
+not update installed settings. No database migration is needed for branding.
 
 ## Local validation
 

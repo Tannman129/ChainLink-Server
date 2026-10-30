@@ -57,6 +57,7 @@ def test_dashboard_without_database(monkeypatch):
         ("basket.svg", "image/svg+xml"),
         ("icons.svg", "image/svg+xml"),
         ("images/chainlink-basket.webp", "image/webp"),
+        ("images/chainlink-favicon.png", "image/png"),
         ("images/chainlink-basket-small.webp", "image/webp"),
     ],
 )

@@ -143,11 +143,11 @@ function dashboard(signal) {
   const artwork = element("img");
   artwork.src = "/static/images/chainlink-basket.webp";
   artwork.srcset =
-    "/static/images/chainlink-basket-small.webp 240w, /static/images/chainlink-basket.webp 480w";
+    "/static/images/chainlink-basket-small.webp 240w, /static/images/chainlink-basket.webp 1024w";
   artwork.sizes = "96px";
-  artwork.width = 480;
-  artwork.height = 587;
-  artwork.alt = "ChainLink Midnight Red disc golf basket artwork";
+  artwork.width = 1024;
+  artwork.height = 1024;
+  artwork.alt = "ChainLink orange disc golf basket artwork";
   artwork.decoding = "async";
   const brandCopy = element("div");
   brandCopy.append(
